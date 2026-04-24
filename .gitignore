@@ -28,6 +28,7 @@ dist/
 # Sensitive / large files
 *.zip
 *.exe
+!ControlIt.exe
 logo.jpeg
 
 # Claude Code settings

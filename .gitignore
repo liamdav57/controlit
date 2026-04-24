@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.spec.bak
+
+# Virtual environments
+venv/
+env/
+.env
+.venv/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# PyInstaller artifacts
+build/
+dist/
+
+# Sensitive / large files
+*.zip
+*.exe
+logo.jpeg
+
+# Claude Code settings
+.claude/
+
+# Logs
+*.log

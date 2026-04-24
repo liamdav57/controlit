@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlIt - בקרה מרחוק של מחשבים</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #030308 0%, #0c0c1e 100%);
+            color: #f1f5f9;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        header {
+            background: rgba(12, 12, 30, 0.8);
+            border-bottom: 2px solid #c084fc;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #c084fc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav a {
+            color: #f1f5f9;
+            text-decoration: none;
+            margin: 0 15px;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #22d3ee;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 100px 20px;
+            background: linear-gradient(180deg, rgba(192, 132, 252, 0.1) 0%, transparent 100%);
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #c084fc;
+            text-shadow: 0 0 20px rgba(192, 132, 252, 0.5);
+        }
+
+        .hero p {
+            font-size: 18px;
+            color: #a1aac6;
+            margin-bottom: 30px;
+        }
+
+        .download-btn {
+            background: linear-gradient(135deg, #c084fc 0%, #a855f7 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(192, 132, 252, 0.4);
+        }
+
+        .secondary-btn {
+            background: transparent;
+            border: 2px solid #22d3ee;
+            color: #22d3ee;
+        }
+
+        .secondary-btn:hover {
+            background: rgba(34, 211, 238, 0.1);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 20px;
+            background: rgba(12, 12, 30, 0.5);
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #c084fc;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: rgba(26, 26, 62, 0.6);
+            border: 1px solid #1a1a3e;
+            border-radius: 12px;
+            padding: 30px;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #c084fc;
+        }
+
+        .feature-card .icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+        }
+
+        .feature-card h3 {
+            margin-bottom: 10px;
+            color: #22d3ee;
+        }
+
+        .feature-card p {
+            color: #a1aac6;
+            font-size: 14px;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 80px 20px;
+        }
+
+        .how-it-works h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #c084fc;
+        }
+
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .step {
+            background: rgba(26, 26, 62, 0.8);
+            border-left: 4px solid #22d3ee;
+            padding: 20px;
+            border-radius: 8px;
+            counter-increment: step-counter;
+        }
+
+        .step::before {
+            content: counter(step-counter);
+            background: #22d3ee;
+            color: #030308;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .step h3 {
+            color: #22d3ee;
+            margin-bottom: 10px;
+        }
+
+        .step p {
+            color: #a1aac6;
+            font-size: 14px;
+        }
+
+        /* Actions Grid */
+        .actions {
+            padding: 80px 20px;
+            background: rgba(12, 12, 30, 0.5);
+        }
+
+        .actions h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #c084fc;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .action-item {
+            background: rgba(26, 26, 62, 0.6);
+            border: 1px solid #1a1a3e;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: border-color 0.3s;
+        }
+
+        .action-item:hover {
+            border-color: #22d3ee;
+        }
+
+        .action-item .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .action-item p {
+            color: #a1aac6;
+            font-size: 13px;
+        }
+
+        /* System Requirements */
+        .requirements {
+            padding: 80px 20px;
+        }
+
+        .requirements h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #c084fc;
+        }
+
+        .req-box {
+            background: rgba(26, 26, 62, 0.8);
+            border: 1px solid #1a1a3e;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .req-box ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .req-box li {
+            padding: 10px 0;
+            color: #a1aac6;
+            border-bottom: 1px solid #1a1a3e;
+        }
+
+        .req-box li:before {
+            content: "✓ ";
+            color: #22d3ee;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        /* FAQ */
+        .faq {
+            padding: 80px 20px;
+            background: rgba(12, 12, 30, 0.5);
+        }
+
+        .faq h2 {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 50px;
+            color: #c084fc;
+        }
+
+        .faq-item {
+            background: rgba(26, 26, 62, 0.8);
+            border: 1px solid #1a1a3e;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.3s;
+        }
+
+        .faq-question:hover {
+            background-color: rgba(192, 132, 252, 0.1);
+        }
+
+        .faq-question h3 {
+            color: #22d3ee;
+        }
+
+        .faq-answer {
+            padding: 0 20px 20px;
+            color: #a1aac6;
+            display: none;
+        }
+
+        .faq-answer.show {
+            display: block;
+        }
+
+        /* Footer */
+        footer {
+            background: rgba(12, 12, 30, 0.8);
+            border-top: 1px solid #1a1a3e;
+            padding: 30px 20px;
+            text-align: center;
+            color: #475569;
+            margin-top: 50px;
+        }
+
+        .version {
+            color: #22d3ee;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            nav {
+                display: none;
+            }
+
+            .features-grid,
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        counter-reset: step-counter;
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <div class="logo">
+                ⚡ ControlIt
+            </div>
+            <nav>
+                <a href="#features">יתרונות</a>
+                <a href="#how">איך זה עובד</a>
+                <a href="#faq">שאלות</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <h1>ControlIt</h1>
+            <p>בקרה מרחוק של מחשבים באותה רשת - פשוט וקל</p>
+            <div>
+                <a href="#download" class="download-btn">⬇️ הורד עכשיו</a>
+                <a href="#how" class="download-btn secondary-btn">📖 קרא עוד</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <h2>🎯 יתרונות</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="icon">🔍</div>
+                    <h3>Auto-Discovery</h3>
+                    <p>מחשבים מוצאים אחד את השני בעצמם - אין צורך בהקלדת IP</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔐</div>
+                    <h3>בטוח</h3>
+                    <p>כל הודעות מוצפנות בFernet, סיסמאות מוגנות בbcrypt</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">⚡</div>
+                    <h3>מהיר</h3>
+                    <p>חיבור ישיר בין מחשבים - אין צורך בserver חיצוני</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📦</div>
+                    <h3>קל להתקנה</h3>
+                    <p>EXE אחד בלבד - בלי צורך בPython או dependencies</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🎮</div>
+                    <h3>6 פקודות שימושיות</h3>
+                    <p>Screenshot, Shell, Files, System Info, Message, Power</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">💾</div>
+                    <h3>זיכרון מכונות</h3>
+                    <p>רשימת המחשבים נשמרת אוטומטית בין הפעלות</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how">
+        <div class="container">
+            <h2>🚀 איך זה עובד</h2>
+            <div class="steps">
+                <div class="step">
+                    <h3>הורדה</h3>
+                    <p>הורד את הקובץ מכאן</p>
+                </div>
+                <div class="step">
+                    <h3>הפעלה</h3>
+                    <p>הפעל ControlIt.exe</p>
+                </div>
+                <div class="step">
+                    <h3>בחירה</h3>
+                    <p>בחר Admin או User</p>
+                </div>
+                <div class="step">
+                    <h3>בקרה</h3>
+                    <p>שלח פקודות מיד</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Actions -->
+    <section class="actions">
+        <div class="container">
+            <h2>⚙️ 6 פקודות שימושיות</h2>
+            <div class="actions-grid">
+                <div class="action-item">
+                    <div class="icon">📷</div>
+                    <p>צלם מסך</p>
+                </div>
+                <div class="action-item">
+                    <div class="icon">⌨️</div>
+                    <p>הרץ פקודות</p>
+                </div>
+                <div class="action-item">
+                    <div class="icon">📂</div>
+                    <p>העבר קבצים</p>
+                </div>
+                <div class="action-item">
+                    <div class="icon">📊</div>
+                    <p>מידע מערכת</p>
+                </div>
+                <div class="action-item">
+                    <div class="icon">💬</div>
+                    <p>שלח הודעה</p>
+                </div>
+                <div class="action-item">
+                    <div class="icon">⏻</div>
+                    <p>Shutdown/Restart</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Requirements -->
+    <section class="requirements">
+        <div class="container">
+            <h2>💻 דרישות המערכת</h2>
+            <div class="req-box">
+                <ul>
+                    <li>Windows 7/10/11</li>
+                    <li>שתי מחשבים על אותה רשת (WiFi/Ethernet)</li>
+                    <li>חיבור אינטרנט (רשת מקומית)</li>
+                    <li>20 MB מקום בדיסק</li>
+                    <li>אין צורך בPython</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq">
+        <div class="container">
+            <h2>❓ שאלות נפוצות</h2>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleAnswer(this)">
+                    <h3>האם זה בטוח?</h3>
+                    <span>▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>כן! כל הודעות מוצפנות בFernet, סיסמאות מוגנות בbcrypt, וזה עובד רק ברשת המקומית (אא"כ מוגדר אחרת).</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleAnswer(this)">
+                    <h3>צריך Python?</h3>
+                    <span>▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>לא! הקובץ EXE עומד בעצמו. פשוט הורד והפעל.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleAnswer(this)">
+                    <h3>איך מתחילים?</h3>
+                    <span>▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>1. הורד את ControlIt.exe<br>2. הפעל על Admin machine וחר ADMIN<br>3. הפעל על User machine וחר USER<br>4. בעוד 3-5 שניות אתה רואה את המחשב</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleAnswer(this)">
+                    <h3>צריך Relay server?</h3>
+                    <span>▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>לא, לא בצורך בLAN mode. Relay צריך רק אם רוצים בקרה מחוץ לרשת המקומית.</p>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question" onclick="toggleAnswer(this)">
+                    <h3>רוצה להוסיף feature?</h3>
+                    <span>▼</span>
+                </div>
+                <div class="faq-answer">
+                    <p>כל הקוד פתוח! צור fork בGitHub או צור issue עם הצעתך.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section class="hero" id="download" style="background: linear-gradient(180deg, rgba(34, 211, 238, 0.1) 0%, transparent 100%); padding: 60px 20px;">
+        <div class="container">
+            <h2 style="color: #22d3ee; margin-bottom: 30px;">⬇️ הורדה</h2>
+            <div style="background: rgba(26, 26, 62, 0.8); padding: 30px; border-radius: 12px; max-width: 500px; margin: 0 auto;">
+                <h3 style="color: #c084fc; margin-bottom: 20px;">ControlIt v1.0</h3>
+                <p style="color: #a1aac6; margin-bottom: 20px;">קובץ EXE מלא עם כל התוכנה</p>
+                <a href="ControlIt.exe" class="download-btn" style="width: 100%; text-align: center;">📥 הורד ControlIt.exe</a>
+                <p style="color: #475569; margin-top: 15px; font-size: 12px;">גודל: ~50 MB | מהדורה: 1.0</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>ControlIt © 2026</p>
+            <p>יוצר: Liam | <span class="version">v1.0</span></p>
+            <p style="margin-top: 10px; font-size: 12px;">⚡ בקרה מרחוק - פשוט, בטוח, וקל</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleAnswer(element) {
+            const answer = element.nextElementSibling;
+            answer.classList.toggle('show');
+
+            const arrow = element.querySelector('span');
+            if (answer.classList.contains('show')) {
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                arrow.style.transform = 'rotate(0)';
+            }
+        }
+    </script>
+</body>
+</html>

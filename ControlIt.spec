@@ -6,11 +6,11 @@ datas += collect_data_files('customtkinter')
 
 
 a = Analysis(
-    ['launcher.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=datas,
-    hiddenimports=['main_menu', 'agent_gui', 'login_page', 'my_connector', 'net_utils', 'crypto', 'discovery_utils', 'discovery_store', 'PIL._tkinter_finder'],
+    hiddenimports=['main_menu', 'agent_gui', 'login_page', 'launcher', 'my_connector', 'net_utils', 'crypto', 'discovery_utils', 'discovery_store', 'PIL._tkinter_finder'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -62,7 +62,9 @@ class AgentApp(ctk.CTk):
         self.agent_id     = None
         self.is_connected = False
         self._pulse_state = True
-        self._invite_code = None   # קוד הזמנה שהמשתמש הזין
+        self._invite_code = None
+        self._relay_host  = RELAY_HOST
+        self._relay_port  = RELAY_PORT
 
         # UDP Discovery — לזיהוי שרתי Relay ברשת המקומית
         self.discovered_relays = {}

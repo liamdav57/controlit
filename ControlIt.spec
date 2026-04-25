@@ -1,16 +1,25 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_all
 
 datas = []
-datas += collect_data_files('customtkinter')
+binaries = []
+hiddenimports = ['main_menu', 'agent_gui', 'login_page', 'launcher', 'my_connector', 'net_utils', 'crypto', 'discovery_utils', 'discovery_store', 'PIL._tkinter_finder']
+tmp_ret = collect_all('customtkinter')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('cryptography')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('bcrypt')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+tmp_ret = collect_all('psutil')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
-    hiddenimports=['main_menu', 'agent_gui', 'login_page', 'launcher', 'my_connector', 'net_utils', 'crypto', 'discovery_utils', 'discovery_store', 'PIL._tkinter_finder'],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -1,12 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files
+
+datas = []
+datas += collect_data_files('customtkinter')
 
 
 a = Analysis(
     ['launcher.py'],
     pathex=[],
     binaries=[],
-    datas=[('agent_gui.py', '.'), ('main_menu.py', '.'), ('script.py', '.'), ('file_transfer.py', '.'), ('login_page.py', '.'), ('my_connector.py', '.'), ('net_utils.py', '.'), ('crypto.py', '.'), ('discovery_utils.py', '.'), ('discovery_store.py', '.')],
-    hiddenimports=[],
+    datas=datas,
+    hiddenimports=['main_menu', 'agent_gui', 'login_page', 'my_connector', 'net_utils', 'crypto', 'discovery_utils', 'discovery_store', 'PIL._tkinter_finder'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

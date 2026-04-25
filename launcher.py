@@ -149,20 +149,24 @@ class ControlItLauncher(ctk.CTk):
     # ---- פונקציות השקה ----
 
     def launch_admin(self):
-        """פותח את לוח הבקרה עבור מצב CONTROLLER"""
-        self.destroy()
+        """פותח את לוח הבקרה עבור מצב ADMIN"""
         try:
-            open_window("controller", self.username)
+            import main_menu
+            self.destroy()
+            app = main_menu.CyberDashboard(self.username)
+            app.mainloop()
         except Exception as e:
-            print(f"Error: {e}")
+            messagebox.showerror("Error", f"Failed to open Admin panel:\n{e}")
 
     def launch_user(self):
         """פותח את ממשק ה-User עבור מצב USER"""
-        self.destroy()
         try:
-            open_window("agent")
+            import agent_gui
+            self.destroy()
+            app = agent_gui.AgentApp()
+            app.mainloop()
         except Exception as e:
-            print(f"Error: {e}")
+            messagebox.showerror("Error", f"Failed to open User panel:\n{e}")
 
 
 if __name__ == "__main__":

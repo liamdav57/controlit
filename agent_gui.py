@@ -155,7 +155,7 @@ class AgentApp(ctk.CTk):
         self.port_entry.pack(side="right")
 
         # כפתור CONNECT
-        ctk.CTkButton(
+        self.connect_btn = ctk.CTkButton(
             code_card, text="⟳  CONNECT TO RELAY",
             command=self.start_connect,
             height=44,
@@ -164,7 +164,8 @@ class AgentApp(ctk.CTk):
             text_color="#030308",
             font=("Roboto", 13, "bold"),
             corner_radius=20
-        ).pack(padx=20, pady=(12, 14), fill="x")
+        )
+        self.connect_btn.pack(padx=20, pady=(12, 14), fill="x")
 
         self.code_error = ctk.CTkLabel(code_card, text="",
                                        font=("Roboto", 11),
@@ -346,8 +347,8 @@ class AgentApp(ctk.CTk):
             self.store.remember_relay(ip, info.get("name", "Relay"))
             # אם השדה ריק, מלא אוטומטית עם ה-IP של ה-Relay שנמצא
             if not self._relay_host or self._relay_host == "127.0.0.1":
-                self.after(0, lambda: self.relay_host_entry.delete(0, "end"))
-                self.after(0, lambda: self.relay_host_entry.insert(0, ip))
+                self.after(0, lambda: self.host_entry.delete(0, "end"))
+                self.after(0, lambda: self.host_entry.insert(0, ip))
 
     # ──────────────────────────────────────
     #  לולאת חיבור (reconnect אוטומטי)

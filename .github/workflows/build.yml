@@ -1,0 +1,50 @@
+name: Build ControlIt EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build EXE
+        run: |
+          python -m PyInstaller --onefile --windowed --name ControlIt --clean `
+            --collect-all customtkinter `
+            --collect-all cryptography `
+            --collect-all bcrypt `
+            --collect-all psutil `
+            --hidden-import main_menu `
+            --hidden-import agent_gui `
+            --hidden-import login_page `
+            --hidden-import launcher `
+            --hidden-import my_connector `
+            --hidden-import net_utils `
+            --hidden-import crypto `
+            --hidden-import discovery_utils `
+            --hidden-import discovery_store `
+            --hidden-import PIL._tkinter_finder `
+            main.py
+
+      - name: Commit EXE back to repo
+        run: |
+          copy dist\ControlIt.exe ControlIt.exe
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ControlIt.exe
+          git diff --staged --quiet || git commit -m "Build: Update ControlIt.exe [skip ci]"
+          git push

@@ -273,7 +273,8 @@ class LoginApp(ctk.CTk):
             if res.get('success'):
                 save_user_machine(u)
                 self.destroy()
-                open_window("launcher", u)
+                import launcher
+                launcher.ControlItLauncher(u).mainloop()
             else:
                 self.btn.configure(text="LOG IN", state="normal")
                 messagebox.showerror("Failed", res.get('message', "Error"))
@@ -291,7 +292,8 @@ class LoginApp(ctk.CTk):
                 save_user_machine(u)
                 messagebox.showinfo("Success", "Account created! Logging in...")
                 self.destroy()
-                open_window("launcher", u)
+                import launcher
+                launcher.ControlItLauncher(u).mainloop()
             else:
                 self.btn.configure(text="SIGN UP", state="normal")
                 messagebox.showerror("Failed", res.get('message', "Error"))

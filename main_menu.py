@@ -906,13 +906,16 @@ class CyberDashboard(ctk.CTk):
 
     def logout(self):
         self.stop_status_check = True
+        if self.discovery:
+            self.discovery.stop()
         if self.relay_sock:
             try:
                 self.relay_sock.close()
             except Exception:
                 pass
         self.destroy()
-        open_window("login")
+        import login_page
+        login_page.LoginApp().mainloop()
 
 
 if __name__ == "__main__":

@@ -13,7 +13,10 @@ from PIL import Image
 from my_connector import login, register, save_user_machine, create_tables
 
 # יצירת טבלאות SQLite אם לא קיימות
-create_tables()
+try:
+    create_tables()
+except Exception as e:
+    print(f"DB init error: {e}")
 
 
 def open_window(mode, *args):

@@ -1,34 +1,28 @@
 # ============================================================
 #  main.py - נקודת הכניסה המאוחדת לכל האפליקציה
-#  כל החלונות נפתחים מכאן לפי ארגומנט שמועבר בשורת הפקודה
-#  כך ניתן לבנות exe אחד שמשמש גם שולט וגם נשלט
 # ============================================================
 
 import sys
+import traceback
 
 
 def main():
-    """מנתב לחלון המתאים לפי ארגומנט ראשון"""
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
 
     if mode == "agent":
-        # מצב נשלט — Agent
         from agent_gui import AgentApp
         AgentApp().mainloop()
 
     elif mode == "login":
-        # מסך התחברות — Controller
         from login_page import LoginApp
         LoginApp().mainloop()
 
     elif mode == "controller":
-        # לוח בקרה — Controller אחרי התחברות
         username = sys.argv[2] if len(sys.argv) > 2 else "User"
         from main_menu import CyberDashboard
         CyberDashboard(username).mainloop()
 
     elif mode == "script":
-        # מסוף פקודות מרחוק
         from script import ScriptConsoleApp
         if len(sys.argv) >= 5:
             target_ip  = sys.argv[2]
@@ -41,22 +35,31 @@ def main():
             ScriptConsoleApp("127.0.0.1").mainloop()
 
     elif mode == "transfer":
-        # העברת קבצים
         from file_transfer import FileTransferApp
         target_ip = sys.argv[2] if len(sys.argv) > 2 else ""
         FileTransferApp(target_ip).mainloop()
 
     elif mode == "launcher":
-        # בחירת מצב אחרי התחברות
         username = sys.argv[2] if len(sys.argv) > 2 else "User"
         from launcher import ControlItLauncher
         ControlItLauncher(username).mainloop()
 
     else:
-        # ברירת מחדל — מסך התחברות
         from login_page import LoginApp
         LoginApp().mainloop()
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        err = traceback.format_exc()
+        try:
+            import tkinter as tk
+            from tkinter import messagebox
+            root = tk.Tk()
+            root.withdraw()
+            messagebox.showerror("ControlIt - Startup Error", err)
+            root.destroy()
+        except Exception:
+            pass

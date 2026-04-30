@@ -1,25 +1,20 @@
-# ============================================================
-#  net_utils.py - פונקציות תקשורת משותפות לכל חלקי המערכת
-#  send_msg / recv_msg משמשות ב-relay_server, agent_gui, main_menu
-# ============================================================
-
-import json
 from crypto import encrypt, decrypt
 
-
 def send_msg(conn, data):
-    """מצפין ושולח הודעת JSON (מסתיימת בשורה חדשה)"""
-    if isinstance(data, dict):
-        data = json.dumps(data)
+    if isinstance(data, list):
+        data = '|'.join(str(x) for x in data)
+    elif isinstance(data, dict):
+        parts = []
+        for key, value in data.items():
+            parts.append(str(value))
+        data = '|'.join(parts)
+    elif not isinstance(data, str):
+        data = str(data)
+
     encrypted = encrypt(data)
     conn.sendall((encrypted + "\n").encode("utf-8"))
 
-
 def recv_msg(conn):
-    """
-    מקבל ומפענח הודעת JSON עד לשורה חדשה.
-    קורא בלוקים של 4096 בייט במקום בייט-בייט — יעיל הרבה יותר.
-    """
     buf = bytearray()
     while True:
         chunk = conn.recv(4096)
@@ -31,4 +26,10 @@ def recv_msg(conn):
             text = bytes(line).decode("utf-8").strip()
             if not text:
                 return None
-            return json.loads(decrypt(text))
+            try:
+                decrypted = decrypt(text)
+                parts = decrypted.split('|')
+                return parts
+            except Exception as e:
+                print("Decrypt error:", e)
+                return None

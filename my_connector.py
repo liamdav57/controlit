@@ -1,15 +1,18 @@
-import mysql.connector
+import sqlite3
 import hashlib
 import os
 import sys
 
+def get_db_path():
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, 'users.db')
+
 def get_connection():
-    conn = mysql.connector.connect(
-        host='localhost',
-        user='root',
-        password='Liamfort5',
-        database='users_db'
-    )
+    conn = sqlite3.connect(get_db_path())
+    conn.row_factory = sqlite3.Row
     return conn
 
 def create_tables():
@@ -18,31 +21,31 @@ def create_tables():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            user_id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(255) NOT NULL,
+            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_login TIMESTAMP NULL,
-            is_active BOOLEAN DEFAULT 1
+            is_active INTEGER DEFAULT 1
         )
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_machines (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(255) NOT NULL,
-            ip_address VARCHAR(45) NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
             login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS saved_targets (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            owner_username VARCHAR(255) NOT NULL,
-            computer_name VARCHAR(255) NOT NULL,
-            ip_address VARCHAR(45) NOT NULL,
-            mac_address VARCHAR(17) DEFAULT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_username TEXT NOT NULL,
+            computer_name TEXT NOT NULL,
+            ip_address TEXT NOT NULL,
+            mac_address TEXT DEFAULT NULL,
             saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
@@ -50,7 +53,6 @@ def create_tables():
     conn.commit()
     cursor.close()
     conn.close()
-    print("Database ready: users_db")
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
@@ -65,7 +67,7 @@ def user_exists(username):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users WHERE username=%s", (username,))
+        cursor.execute("SELECT COUNT(*) FROM users WHERE username=?", (username,))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
@@ -80,7 +82,7 @@ def register(username, password):
         conn = get_connection()
         cursor = conn.cursor()
         hashed = hash_password(password)
-        cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed))
+        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
         conn.commit()
         cursor.close()
         conn.close()
@@ -92,11 +94,11 @@ def login(username, password):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
+        cursor.execute("SELECT * FROM users WHERE username=?", (username,))
         row = cursor.fetchone()
 
-        if row and verify_password(password, row[2]):
-            cursor.execute("UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE username=%s", (username,))
+        if row and verify_password(password, row['password']):
+            cursor.execute("UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE username=?", (username,))
             conn.commit()
             cursor.close()
             conn.close()
@@ -114,7 +116,7 @@ def save_user_machine(username):
         ip = socket.gethostbyname(socket.gethostname())
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO user_machines (username, ip_address) VALUES (%s, %s)", (username, ip))
+        cursor.execute("INSERT INTO user_machines (username, ip_address) VALUES (?, ?)", (username, ip))
         conn.commit()
         cursor.close()
         conn.close()
@@ -125,13 +127,13 @@ def save_target_computer(owner, name, ip, mac=""):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM saved_targets WHERE owner_username=%s AND ip_address=%s", (owner, ip))
+        cursor.execute("SELECT id FROM saved_targets WHERE owner_username=? AND ip_address=?", (owner, ip))
         row = cursor.fetchone()
 
         if row:
-            cursor.execute("UPDATE saved_targets SET computer_name=%s, mac_address=%s WHERE id=%s", (name, mac, row[0]))
+            cursor.execute("UPDATE saved_targets SET computer_name=?, mac_address=? WHERE id=?", (name, mac, row[0]))
         else:
-            cursor.execute("INSERT INTO saved_targets (owner_username, computer_name, ip_address, mac_address) VALUES (%s, %s, %s, %s)", (owner, name, ip, mac))
+            cursor.execute("INSERT INTO saved_targets (owner_username, computer_name, ip_address, mac_address) VALUES (?, ?, ?, ?)", (owner, name, ip, mac))
 
         conn.commit()
         cursor.close()
@@ -145,19 +147,11 @@ def get_saved_computers(owner):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT computer_name, ip_address, mac_address FROM saved_targets WHERE owner_username=%s", (owner,))
+        cursor.execute("SELECT computer_name, ip_address, mac_address FROM saved_targets WHERE owner_username=?", (owner,))
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
-
-        result = []
-        for row in rows:
-            result.append({
-                'computer_name': row[0],
-                'ip_address': row[1],
-                'mac_address': row[2]
-            })
-        return result
+        return [{'computer_name': r[0], 'ip_address': r[1], 'mac_address': r[2]} for r in rows]
     except Exception:
         return []
 

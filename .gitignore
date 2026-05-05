@@ -31,8 +31,9 @@ dist/
 !ControlIt.exe
 logo.jpeg
 
-# Claude Code settings
+# Dev tool settings
 .claude/
+CLAUDE.md
 
 # Logs
 *.log

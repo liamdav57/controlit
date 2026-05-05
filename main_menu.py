@@ -84,7 +84,7 @@ class CyberDashboard(tk.Tk):
 
         title = tk.Label(header, text="ControlIt Admin Dashboard",
                         font=("Arial", 18, "bold"),
-                        bg="#0a0a0a", fg="#ff9900")
+                        bg="#0a0a0a", fg="#e74c3c")
         title.pack(side="left")
 
         user_label = tk.Label(header, text=f"Logged in: {self.username}",
@@ -104,7 +104,7 @@ class CyberDashboard(tk.Tk):
 
         tk.Button(btn_frame, text="Refresh",
                  font=("Arial", 10),
-                 bg="#0066cc", fg="white",
+                 bg="#e74c3c", fg="white",
                  command=self.refresh_agents).pack(side="left", padx=5)
 
         tk.Label(btn_frame, text="",
@@ -139,7 +139,7 @@ class CyberDashboard(tk.Tk):
     def create_action_button(self, parent, row, col, text, cmd):
         btn = tk.Button(parent, text=text,
                        font=("Arial", 12, "bold"),
-                       bg="#0066cc", fg="white",
+                       bg="#e74c3c", fg="white",
                        height=3, width=15,
                        command=cmd)
         btn.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
@@ -256,7 +256,7 @@ class CyberDashboard(tk.Tk):
                 cmd_entry.delete(0, "end")
 
         tk.Button(cmd_frame, text="Run",
-                 bg="#0066cc", fg="white",
+                 bg="#e74c3c", fg="white",
                  command=run_cmd).pack(side="right")
 
     def open_file_transfer(self):

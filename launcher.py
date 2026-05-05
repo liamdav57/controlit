@@ -33,7 +33,7 @@ class ControlItLauncher(tk.Tk):
 
         title_label = tk.Label(top_frame, text="CONTROLIT",
                               font=("Arial", 28, "bold"),
-                              bg="#1a1a1a", fg="#ff9900")
+                              bg="#1a1a1a", fg="#e74c3c")
         title_label.pack()
 
         subtitle = tk.Label(top_frame, text=f"Welcome {self.username} - choose mode",
@@ -46,7 +46,7 @@ class ControlItLauncher(tk.Tk):
 
         admin_btn = tk.Button(buttons_frame, text="ADMIN\nControl Mode",
                              font=("Arial", 14, "bold"),
-                             bg="#0066cc", fg="white",
+                             bg="#e74c3c", fg="white",
                              width=20, height=5,
                              command=self.launch_admin)
         admin_btn.pack(side="left", padx=10)

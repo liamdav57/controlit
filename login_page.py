@@ -86,7 +86,7 @@ class LoginApp(tk.Tk):
                 font=("Arial", 10),
                 bg="#0a0a0a", fg="#888888").pack()
 
-        # Register username
+    # Register username
         tk.Label(right, text="Username:",
                 font=("Arial", 11, "bold"),
                 bg="#0a0a0a", fg="#ffffff").pack(anchor="w", padx=40, pady=(30, 5))

@@ -1,58 +1,80 @@
-import sqlite3
+import mysql.connector
 import hashlib
-import os
-import sys
 
-def get_db_path():
-    if getattr(sys, 'frozen', False):
-        base = os.path.dirname(sys.executable)
-    else:
-        base = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base, 'users.db')
+# ── הגדרות חיבור ל-MySQL ──────────────────────────────────────────────────
+DB_CONFIG = {
+    'host':     'localhost',
+    'user':     'root',
+    'password': 'Liamfort5', # ← סיסמת MySQL
+    'database': 'controlit_db',
+}
+
+# ══════════════════════════════════════════════════════════════════════════
+#  חיבור
+# ══════════════════════════════════════════════════════════════════════════
 
 def get_connection():
-    conn = sqlite3.connect(get_db_path())
-    conn.row_factory = sqlite3.Row
-    return conn
+    return mysql.connector.connect(**DB_CONFIG)
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  יצירת טבלאות (אם לא קיימות)
+# ══════════════════════════════════════════════════════════════════════════
 
 def create_tables():
+    # צור את ה-database אם לא קיים
+    temp = mysql.connector.connect(
+        host=DB_CONFIG['host'],
+        user=DB_CONFIG['user'],
+        password=DB_CONFIG['password'],
+    )
+    cur = temp.cursor()
+    cur.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")
+    cur.close()
+    temp.close()
+
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
+            user_id   INT AUTO_INCREMENT PRIMARY KEY,
+            username  VARCHAR(100) UNIQUE NOT NULL,
+            password  VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_login TIMESTAMP NULL,
-            is_active INTEGER DEFAULT 1
+            is_active  TINYINT DEFAULT 1
         )
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS user_machines (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            ip_address TEXT NOT NULL,
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            username   VARCHAR(100) NOT NULL,
+            ip_address VARCHAR(45)  NOT NULL,
             login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS saved_targets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            owner_username TEXT NOT NULL,
-            computer_name TEXT NOT NULL,
-            ip_address TEXT NOT NULL,
-            mac_address TEXT DEFAULT NULL,
-            saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            id              INT AUTO_INCREMENT PRIMARY KEY,
+            owner_username  VARCHAR(100) NOT NULL,
+            computer_name   VARCHAR(100) NOT NULL,
+            ip_address      VARCHAR(45)  NOT NULL,
+            mac_address     VARCHAR(20)  DEFAULT NULL,
+            saved_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
     conn.commit()
     cursor.close()
     conn.close()
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  הצפנת סיסמאות
+# ══════════════════════════════════════════════════════════════════════════
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
@@ -63,17 +85,27 @@ def verify_password(plain, hashed) -> bool:
     except Exception:
         return False
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  בדיקה אם משתמש קיים
+# ══════════════════════════════════════════════════════════════════════════
+
 def user_exists(username):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM users WHERE username=?", (username,))
+        cursor.execute("SELECT COUNT(*) FROM users WHERE username=%s", (username,))
         result = cursor.fetchone()
         cursor.close()
         conn.close()
         return result[0] > 0
     except Exception:
         return False
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  הרשמה
+# ══════════════════════════════════════════════════════════════════════════
 
 def register(username, password):
     try:
@@ -82,7 +114,10 @@ def register(username, password):
         conn = get_connection()
         cursor = conn.cursor()
         hashed = hash_password(password)
-        cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed))
+        cursor.execute(
+            "INSERT INTO users (username, password) VALUES (%s, %s)",
+            (username, hashed)
+        )
         conn.commit()
         cursor.close()
         conn.close()
@@ -90,15 +125,23 @@ def register(username, password):
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  כניסה
+# ══════════════════════════════════════════════════════════════════════════
+
 def login(username, password):
     try:
         conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM users WHERE username=?", (username,))
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
         row = cursor.fetchone()
 
         if row and verify_password(password, row['password']):
-            cursor.execute("UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE username=?", (username,))
+            cursor.execute(
+                "UPDATE users SET last_login=NOW() WHERE username=%s",
+                (username,)
+            )
             conn.commit()
             cursor.close()
             conn.close()
@@ -110,30 +153,53 @@ def login(username, password):
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  רישום מכונה
+# ══════════════════════════════════════════════════════════════════════════
+
 def save_user_machine(username):
     try:
         import socket
         ip = socket.gethostbyname(socket.gethostname())
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO user_machines (username, ip_address) VALUES (?, ?)", (username, ip))
+        cursor.execute(
+            "INSERT INTO user_machines (username, ip_address) VALUES (%s, %s)",
+            (username, ip)
+        )
         conn.commit()
         cursor.close()
         conn.close()
     except Exception as e:
         print("Log error:", e)
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  שמירת מחשב יעד
+# ══════════════════════════════════════════════════════════════════════════
+
 def save_target_computer(owner, name, ip, mac=""):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM saved_targets WHERE owner_username=? AND ip_address=?", (owner, ip))
+        cursor.execute(
+            "SELECT id FROM saved_targets WHERE owner_username=%s AND ip_address=%s",
+            (owner, ip)
+        )
         row = cursor.fetchone()
 
         if row:
-            cursor.execute("UPDATE saved_targets SET computer_name=?, mac_address=? WHERE id=?", (name, mac, row[0]))
+            cursor.execute(
+                "UPDATE saved_targets SET computer_name=%s, mac_address=%s WHERE id=%s",
+                (name, mac, row[0])
+            )
         else:
-            cursor.execute("INSERT INTO saved_targets (owner_username, computer_name, ip_address, mac_address) VALUES (?, ?, ?, ?)", (owner, name, ip, mac))
+            cursor.execute(
+                "INSERT INTO saved_targets (owner_username, computer_name, ip_address, mac_address) "
+                "VALUES (%s, %s, %s, %s)",
+                (owner, name, ip, mac)
+            )
 
         conn.commit()
         cursor.close()
@@ -143,11 +209,20 @@ def save_target_computer(owner, name, ip, mac=""):
         print(f"Save error: {e}")
         return False
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  קבלת מחשבים שמורים
+# ══════════════════════════════════════════════════════════════════════════
+
 def get_saved_computers(owner):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT computer_name, ip_address, mac_address FROM saved_targets WHERE owner_username=?", (owner,))
+        cursor.execute(
+            "SELECT computer_name, ip_address, mac_address "
+            "FROM saved_targets WHERE owner_username=%s",
+            (owner,)
+        )
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -155,5 +230,11 @@ def get_saved_computers(owner):
     except Exception:
         return []
 
+
+# ══════════════════════════════════════════════════════════════════════════
+#  הרצה ישירה – יוצר טבלאות
+# ══════════════════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
     create_tables()
+    print("Tables created successfully in MySQL database:", DB_CONFIG['database'])

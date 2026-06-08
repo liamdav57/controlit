@@ -1,12 +1,13 @@
 import mysql.connector
 import hashlib
+from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 
-# ── הגדרות חיבור ל-MySQL ──────────────────────────────────────────────────
+# ── הגדרות חיבור ל-MySQL (קוראות מ-config.py / .env) ──────────────────────
 DB_CONFIG = {
-    'host':     'localhost',
-    'user':     'root',
-    'password': 'Liamfort5', # ← סיסמת MySQL
-    'database': 'controlit_db',
+    'host':     DB_HOST,
+    'user':     DB_USER,
+    'password': DB_PASSWORD,
+    'database': DB_NAME,
 }
 
 # ══════════════════════════════════════════════════════════════════════════

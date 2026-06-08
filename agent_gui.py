@@ -11,6 +11,7 @@ import io
 from PIL import ImageGrab
 from tkinter import messagebox
 from net_utils import send_msg, recv_msg
+from config import CMD_PORT, DISCOVERY_PORT
 
 class UDPBroadcaster(threading.Thread):
     def __init__(self):
@@ -25,7 +26,7 @@ class UDPBroadcaster(threading.Thread):
         while not self.stop_flag:
             try:
                 msg = f"user|{socket.gethostname()}|{socket.gethostbyname(socket.gethostname())}"
-                sock.sendto(msg.encode('utf-8'), ("<broadcast>", 5556))
+                sock.sendto(msg.encode('utf-8'), ("<broadcast>", DISCOVERY_PORT))
                 time.sleep(3)
             except Exception:
                 pass
@@ -40,9 +41,9 @@ class CommandServer(threading.Thread):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            server.bind(("0.0.0.0", 5555))
+            server.bind(("0.0.0.0", CMD_PORT))
             server.listen(5)
-            print("Server listening on port 5555...")
+            print(f"Server listening on port {CMD_PORT}...")
 
             while not self.stop_flag:
                 try:
@@ -202,11 +203,11 @@ class AgentApp(tk.Tk):
                 font=("Arial", 11),
                 bg="#1a1a1a", fg="#ffffff").pack(anchor="w", pady=3)
 
-        tk.Label(info_frame, text="Status: Broadcasting on LAN (UDP:5556)",
+        tk.Label(info_frame, text=f"Status: Broadcasting on LAN (UDP:{DISCOVERY_PORT})",
                 font=("Arial", 10),
                 bg="#1a1a1a", fg="#00ff00").pack(anchor="w", pady=3)
 
-        tk.Label(info_frame, text="Listening on TCP:5555",
+        tk.Label(info_frame, text=f"Listening on TCP:{CMD_PORT}",
                 font=("Arial", 10),
                 bg="#1a1a1a", fg="#00ff00").pack(anchor="w", pady=3)
 

@@ -10,6 +10,7 @@ import io
 from datetime import datetime
 from PIL import Image, ImageTk
 from net_utils import send_msg, recv_msg
+from config import CMD_PORT, DISCOVERY_PORT, AGENT_TIMEOUT_SEC
 
 def open_window(mode, *args):
     if getattr(sys, 'frozen', False):
@@ -34,7 +35,7 @@ class UDPListener(threading.Thread):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            sock.bind(("0.0.0.0", 5556))
+            sock.bind(("0.0.0.0", DISCOVERY_PORT))
         except Exception:
             print("UDP bind error")
             return
@@ -68,7 +69,7 @@ class CyberDashboard(tk.Tk):
         self.configure(bg="#1a1a1a")
         self.username = username
         self.selected_agent = None
-        self.agents = {}
+        self.agents = {}           # ip → {ip, name, role, last_seen}
         self.agent_sock = None
         self.stop_listener = False
 
@@ -147,15 +148,29 @@ class CyberDashboard(tk.Tk):
         parent.grid_columnconfigure(col, weight=1)
 
     def _on_discovery(self, ip, info):
-        if info.get('role') == 'user' and ip not in self.agents:
+        """נקרא מה-UDP listener thread בכל פעם שמגיע broadcast."""
+        if info.get('role') == 'user':
             self.agents[ip] = {
-                'ip': ip,
-                'name': info.get('name', 'User'),
-                'role': 'user'
+                'ip':        ip,
+                'name':      info.get('name', 'User'),
+                'role':      'user',
+                'last_seen': time.time()   # ← מתי נראה לאחרונה
             }
-            self.refresh_agents()
+            self.after(0, self.refresh_agents)
 
     def refresh_agents(self):
+        """מסנן agents שלא שלחו broadcast מעל AGENT_TIMEOUT_SEC שניות."""
+        now = time.time()
+        # הסר agents שנעלמו
+        stale = [ip for ip, info in self.agents.items()
+                 if now - info.get('last_seen', 0) > AGENT_TIMEOUT_SEC]
+        for ip in stale:
+            del self.agents[ip]
+            # אם ה-agent שנעלם הוא הנבחר — אפס בחירה
+            if self.selected_agent and self.selected_agent.get('ip') == ip:
+                self.selected_agent = None
+                self.selected_label.config(text="No selection")
+
         self.agents_listbox.delete(0, "end")
         for ip, info in self.agents.items():
             self.agents_listbox.insert("end", f"{info['name']} ({ip})")
@@ -175,7 +190,7 @@ class CyberDashboard(tk.Tk):
         try:
             self.agent_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.agent_sock.settimeout(5)
-            self.agent_sock.connect((self.selected_agent['ip'], 5555))
+            self.agent_sock.connect((self.selected_agent['ip'], CMD_PORT))
             return True
         except Exception as e:
             messagebox.showerror("Error", f"Cannot connect: {e}")
@@ -183,8 +198,9 @@ class CyberDashboard(tk.Tk):
             return False
 
     def send_command(self, cmd):
+        """שולח פקודה ומחכה לתשובה. חייב לרוץ בthread נפרד (לא ב-GUI thread)."""
         if not self.selected_agent:
-            messagebox.showwarning("Error", "Select an agent first")
+            self.after(0, lambda: messagebox.showwarning("Error", "Select an agent first"))
             return None
 
         if not self.agent_sock:
@@ -196,10 +212,11 @@ class CyberDashboard(tk.Tk):
             response = recv_msg(self.agent_sock)
             return response
         except Exception as e:
-            messagebox.showerror("Error", f"Command failed: {e}")
+            self.after(0, lambda: messagebox.showerror("Error", f"Command failed: {e}"))
             self.agent_sock = None
             return None
 
+    # ── Screenshot ────────────────────────────────────────────────────────────
     def take_screenshot(self):
         threading.Thread(target=self._screenshot_thread, daemon=True).start()
 
@@ -208,7 +225,6 @@ class CyberDashboard(tk.Tk):
         if not resp or len(resp) < 2:
             self.after(0, lambda: messagebox.showerror("Error", "No response"))
             return
-
         try:
             img_data = base64.b64decode(resp[1])
             img = Image.open(io.BytesIO(img_data))
@@ -219,16 +235,19 @@ class CyberDashboard(tk.Tk):
     def _show_screenshot(self, img):
         win = tk.Toplevel(self)
         win.title("Screenshot")
+        win.configure(bg="#0a0a0a")
         img.thumbnail((1000, 600))
         tk_img = ImageTk.PhotoImage(img)
         lbl = tk.Label(win, image=tk_img, bg="black")
         lbl.image = tk_img
         lbl.pack()
 
+    # ── Shell ─────────────────────────────────────────────────────────────────
     def open_shell(self):
         win = tk.Toplevel(self)
         win.title("Remote Shell")
         win.geometry("500x400")
+        win.configure(bg="#1a1a1a")
 
         text = scrolledtext.ScrolledText(win, height=15, width=60,
                                         bg="#0a0a0a", fg="#00ff00",
@@ -243,46 +262,60 @@ class CyberDashboard(tk.Tk):
         cmd_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
         def run_cmd():
-            cmd = cmd_entry.get()
-            if cmd:
-                text.insert("end", f"\n$ {cmd}\n")
-                text.see("end")
-                resp = self.send_command(f"CMD|SHELL|{cmd}")
-                if resp and len(resp) > 1:
-                    text.insert("end", resp[1] + "\n")
-                else:
-                    text.insert("end", "No response\n")
-                text.see("end")
-                cmd_entry.delete(0, "end")
+            cmd = cmd_entry.get().strip()
+            if not cmd:
+                return
+            text.insert("end", f"\n$ {cmd}\n")
+            text.see("end")
+            cmd_entry.delete(0, "end")
 
+            def _thread():
+                resp = self.send_command(f"CMD|SHELL|{cmd}")
+                output = resp[1] if resp and len(resp) > 1 else "No response"
+                self.after(0, lambda: (text.insert("end", output + "\n"), text.see("end")))
+
+            threading.Thread(target=_thread, daemon=True).start()
+
+        cmd_entry.bind("<Return>", lambda e: run_cmd())
         tk.Button(cmd_frame, text="Run",
                  bg="#e74c3c", fg="white",
                  command=run_cmd).pack(side="right")
 
+    # ── File Transfer ─────────────────────────────────────────────────────────
     def open_file_transfer(self):
         messagebox.showinfo("File Transfer", "Not implemented yet")
 
+    # ── System Info ───────────────────────────────────────────────────────────
     def get_sysinfo(self):
-        resp = self.send_command("CMD|SYSINFO|")
-        if resp and len(resp) > 1:
-            info_text = resp[1]
-            messagebox.showinfo("System Info", info_text)
-        else:
-            messagebox.showerror("Error", "No response")
+        """רץ בthread כדי לא לקפיא את ה-GUI."""
+        def _thread():
+            resp = self.send_command("CMD|SYSINFO|")
+            if resp and len(resp) > 1:
+                self.after(0, lambda: messagebox.showinfo("System Info", resp[1]))
+            else:
+                self.after(0, lambda: messagebox.showerror("Error", "No response"))
+        threading.Thread(target=_thread, daemon=True).start()
 
+    # ── Send Message ──────────────────────────────────────────────────────────
     def send_message(self):
         msg = simpledialog.askstring("Message", "Enter message:")
-        if msg:
+        if not msg:
+            return
+
+        def _thread():
             resp = self.send_command(f"CMD|MSG|{msg}")
             if resp and resp[0] == "OK":
-                messagebox.showinfo("Success", "Message sent")
+                self.after(0, lambda: messagebox.showinfo("Success", "Message sent"))
             else:
-                messagebox.showerror("Error", "Failed to send")
+                self.after(0, lambda: messagebox.showerror("Error", "Failed to send"))
+        threading.Thread(target=_thread, daemon=True).start()
 
+    # ── Power ─────────────────────────────────────────────────────────────────
     def power_menu(self):
         win = tk.Toplevel(self)
         win.title("Power Options")
         win.geometry("300x150")
+        win.configure(bg="#1a1a1a")   # תיקון: תואם את העיצוב
 
         tk.Label(win, text="Choose action:",
                 font=("Arial", 12),
@@ -301,13 +334,19 @@ class CyberDashboard(tk.Tk):
                  command=lambda: self._power_cmd("RESTART", win)).pack(pady=5)
 
     def _power_cmd(self, action, win):
-        if messagebox.askyesno("Confirm", f"Execute {action}?"):
-            resp = self.send_command(f"CMD|POWER|{action}")
-            win.destroy()
-            if resp and resp[0] == "OK":
-                messagebox.showinfo("Success", f"{action} command sent")
+        if not messagebox.askyesno("Confirm", f"Execute {action}?"):
+            return
+        win.destroy()
 
+        def _thread():
+            resp = self.send_command(f"CMD|POWER|{action}")
+            if resp and resp[0] == "OK":
+                self.after(0, lambda: messagebox.showinfo("Success", f"{action} command sent"))
+        threading.Thread(target=_thread, daemon=True).start()
+
+    # ── Refresh loop ──────────────────────────────────────────────────────────
     def start_refresh_loop(self):
+        """פועל ברקע — מרענן רשימת agents כל 3 שניות ומסיר שנעלמו."""
         def loop():
             while not self.stop_listener:
                 time.sleep(3)
@@ -319,8 +358,12 @@ class CyberDashboard(tk.Tk):
 
     def on_closing(self):
         self.stop_listener = True
+        self.discovery.stop_flag = True
         if self.agent_sock:
-            self.agent_sock.close()
+            try:
+                self.agent_sock.close()
+            except Exception:
+                pass
         self.destroy()
 
 if __name__ == "__main__":

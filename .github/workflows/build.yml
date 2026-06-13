@@ -24,10 +24,6 @@ jobs:
       - name: Build EXE
         run: |
           python -m PyInstaller --onefile --windowed --name ControlIt --clean `
-            --collect-all customtkinter `
-            --collect-all cryptography `
-            --collect-all bcrypt `
-            --collect-all psutil `
             --hidden-import main_menu `
             --hidden-import agent_gui `
             --hidden-import login_page `
@@ -35,8 +31,10 @@ jobs:
             --hidden-import my_connector `
             --hidden-import net_utils `
             --hidden-import crypto `
-            --hidden-import discovery_utils `
-            --hidden-import discovery_store `
+            --hidden-import config `
+            --hidden-import mysql.connector `
+            --hidden-import mysql.connector.locales.eng `
+            --hidden-import mysql.connector.plugins `
             --hidden-import PIL._tkinter_finder `
             main.py
 

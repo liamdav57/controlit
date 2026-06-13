@@ -134,12 +134,28 @@ class LoginApp(tk.Tk):
 
         res = login(u, p)
         if res.get('success'):
-            save_user_machine(u)
-            self.destroy()
-            import launcher
-            launcher.ControlItLauncher(u).mainloop()
+            try:
+                save_user_machine(u)
+            except Exception:
+                pass
+            self._enter(u)
+        elif res.get('message') == 'Invalid credentials':
+            messagebox.showerror("Failed", "Invalid credentials")
         else:
-            messagebox.showerror("Failed", res.get('message', "Error"))
+            # אין שרת מסד נתונים זמין — נכנסים במצב לא-מקוון.
+            # כל יכולות השליטה מרחוק (צילום, shell, גילוי) עובדות בלי מסד;
+            # רק שמירת חשבונות והיסטוריה מושבתת.
+            messagebox.showinfo(
+                "Offline Mode",
+                "אין חיבור למסד נתונים — נכנס במצב לא-מקוון.\n"
+                "כל יכולות השליטה מרחוק זמינות כרגיל.")
+            self._enter(u)
+
+    def _enter(self, username):
+        """סוגר את מסך הכניסה ופותח את מסך בחירת המצב."""
+        self.destroy()
+        import launcher
+        launcher.ControlItLauncher(username).mainloop()
 
     def handle_register(self):
         u = self.reg_user.get().strip()
@@ -163,8 +179,14 @@ class LoginApp(tk.Tk):
             self.login_user.delete(0, "end")
             self.login_pass.delete(0, "end")
             self.login_user.insert(0, u)
+        elif res.get('message') == 'User exists':
+            messagebox.showerror("Failed", "User exists")
         else:
-            messagebox.showerror("Failed", res.get('message', "Error"))
+            # אין מסד נתונים — אין צורך בהרשמה, פשוט נכנסים עם שם כלשהו
+            messagebox.showinfo(
+                "Offline Mode",
+                "אין מסד נתונים זמין — אין צורך בהרשמה.\n"
+                "התחבר עם שם כלשהו בצד שמאל כדי להיכנס.")
 
 if __name__ == "__main__":
     app = LoginApp()

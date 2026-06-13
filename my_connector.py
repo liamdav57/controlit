@@ -1,6 +1,13 @@
-import mysql.connector
 import hashlib
 from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
+
+# ייבוא הדרייבר של MySQL — אם לא מותקן, המערכת לא קורסת אלא עוברת למצב לא-מקוון
+try:
+    import mysql.connector
+    _MYSQL_DRIVER = True
+except ImportError:
+    mysql = None
+    _MYSQL_DRIVER = False
 
 # ── הגדרות חיבור ל-MySQL (קוראות מ-config.py / .env) ──────────────────────
 DB_CONFIG = {
@@ -15,7 +22,23 @@ DB_CONFIG = {
 # ══════════════════════════════════════════════════════════════════════════
 
 def get_connection():
+    if not _MYSQL_DRIVER:
+        raise RuntimeError("mysql.connector not installed - offline mode")
     return mysql.connector.connect(**DB_CONFIG)
+
+
+def db_available():
+    """בדיקה מהירה אם שרת MySQL זמין — קובע מצב מקוון/לא-מקוון."""
+    if not _MYSQL_DRIVER:
+        return False
+    try:
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'], user=DB_CONFIG['user'],
+            password=DB_CONFIG['password'], connection_timeout=3)
+        conn.close()
+        return True
+    except Exception:
+        return False
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -23,6 +46,8 @@ def get_connection():
 # ══════════════════════════════════════════════════════════════════════════
 
 def create_tables():
+    if not _MYSQL_DRIVER:
+        raise RuntimeError("mysql.connector not installed - offline mode")
     # צור את ה-database אם לא קיים
     temp = mysql.connector.connect(
         host=DB_CONFIG['host'],

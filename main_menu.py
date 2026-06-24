@@ -55,6 +55,9 @@ class UDPListener(threading.Thread):
                             'name': parts[1],
                             'ip': addr[0]
                         }
+                        if parts[0] == 'msg':
+                            # הודעה מהסוכן למנהל — הטקסט הוא כל מה שאחרי השם
+                            info['text'] = '|'.join(parts[2:])
                         self.callback(addr[0], info)
                 except Exception:
                     pass
@@ -159,6 +162,12 @@ class CyberDashboard(tk.Tk):
                 'last_seen': time.time()   # ← מתי נראה לאחרונה
             }
             self.after(0, self.refresh_agents)
+        elif info.get('role') == 'msg':
+            # הודעה שהגיעה מסוכן — מציגים אותה למנהל
+            name = info.get('name', 'User')
+            text = info.get('text', '')
+            self.after(0, lambda: messagebox.showinfo(
+                "Message from User", f"{name}:\n\n{text}"))
 
     def refresh_agents(self):
         """מסנן agents שלא שלחו broadcast מעל AGENT_TIMEOUT_SEC שניות."""

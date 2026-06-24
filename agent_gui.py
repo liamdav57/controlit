@@ -258,7 +258,7 @@ class AgentApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ControlIt - Managed Machine")
-        self.geometry("500x300")
+        self.geometry("500x380")
         self.configure(bg="#1a1a1a")
 
         self.broadcaster = UDPBroadcaster()
@@ -312,6 +312,20 @@ class AgentApp(tk.Tk):
         self.log_message("Broadcasting availability to LAN...")
         self.log_message("Waiting for admin commands...")
 
+        # ── שליחת הודעה למנהל ──
+        msg_frame = tk.Frame(self, bg="#1a1a1a")
+        msg_frame.pack(fill="x", padx=20, pady=(0, 5))
+        tk.Label(msg_frame, text="Send message to admin:",
+                 font=("Arial", 9), bg="#1a1a1a", fg="#ffffff").pack(anchor="w")
+        row = tk.Frame(msg_frame, bg="#1a1a1a")
+        row.pack(fill="x")
+        self.msg_entry = tk.Entry(row, bg="#0a0a0a", fg="#00ff00",
+                                  font=("Consolas", 10))
+        self.msg_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
+        self.msg_entry.bind("<Return>", lambda e: self.send_message_to_admin())
+        tk.Button(row, text="Send", bg="#e74c3c", fg="white",
+                  command=self.send_message_to_admin).pack(side="right")
+
         btn_frame = tk.Frame(self, bg="#1a1a1a")
         btn_frame.pack(fill="x", padx=20, pady=10)
 
@@ -327,6 +341,22 @@ class AgentApp(tk.Tk):
     def show_notification(self, text):
         messagebox.showinfo("Message from Admin", text)
         self.log_message(f"Received message: {text}")
+
+    def send_message_to_admin(self):
+        """שולח הודעה למנהל דרך שידור UDP (פורט הגילוי)."""
+        text = self.msg_entry.get().strip()
+        if not text:
+            return
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            msg = f"msg|{socket.gethostname()}|{text}"
+            sock.sendto(msg.encode('utf-8'), ("<broadcast>", DISCOVERY_PORT))
+            sock.close()
+            self.log_message(f"Sent to admin: {text}")
+            self.msg_entry.delete(0, "end")
+        except Exception as e:
+            self.log_message(f"Send failed: {e}")
 
     def on_exit(self):
         self.broadcaster.stop_flag = True

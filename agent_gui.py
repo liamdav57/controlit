@@ -11,7 +11,7 @@ import io
 from PIL import ImageGrab
 from tkinter import messagebox
 from net_utils import send_msg, recv_msg
-from config import CMD_PORT, DISCOVERY_PORT
+from config import CMD_PORT, DISCOVERY_PORT, TRANSFER_PORT
 
 class UDPBroadcaster(threading.Thread):
     def __init__(self):
@@ -127,19 +127,37 @@ class CommandServer(threading.Thread):
         try:
             info = f"System: {platform.system()} {platform.release()}\n"
             info += f"Machine: {platform.machine()}\n"
-            info += f"Processor: {platform.processor()}\n"
+            proc = platform.processor() or os.environ.get("PROCESSOR_IDENTIFIER", "Unknown")
+            info += f"Processor: {proc}\n"
+            info += f"CPU cores: {os.cpu_count()}\n"
             info += f"Hostname: {socket.gethostname()}\n"
+            info += f"User: {os.environ.get('USERNAME', '?')}\n"
 
+            # RAM דרך ctypes (עובד בכל גרסת Windows, בלי wmic)
             try:
-                cpu = os.popen('wmic os get TotalVisibleMemorySize').read().split('\n')[1].strip()
-                ram_mb = int(cpu) // 1024
-                info += f"RAM: {ram_mb} MB\n"
+                import ctypes
+                class MEMORYSTATUSEX(ctypes.Structure):
+                    _fields_ = [("dwLength", ctypes.c_ulong),
+                                ("dwMemoryLoad", ctypes.c_ulong),
+                                ("ullTotalPhys", ctypes.c_ulonglong),
+                                ("ullAvailPhys", ctypes.c_ulonglong),
+                                ("ullTotalPageFile", ctypes.c_ulonglong),
+                                ("ullAvailPageFile", ctypes.c_ulonglong),
+                                ("ullTotalVirtual", ctypes.c_ulonglong),
+                                ("ullAvailVirtual", ctypes.c_ulonglong),
+                                ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+                mem = MEMORYSTATUSEX()
+                mem.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem))
+                info += f"RAM: {mem.ullTotalPhys // (1024**3)} GB (in use {mem.dwMemoryLoad}%)\n"
             except Exception:
                 pass
 
+            # שטח דיסק דרך shutil (פייתון טהור)
             try:
-                disk = os.popen('wmic logicaldisk get size /value').read()
-                info += f"Disk: {disk[:50]}\n"
+                import shutil
+                total, used, free = shutil.disk_usage("C:\\")
+                info += f"Disk C: {total // (1024**3)} GB total, {free // (1024**3)} GB free\n"
             except Exception:
                 pass
 
@@ -168,6 +186,74 @@ class CommandServer(threading.Thread):
         except Exception as e:
             return ["ERROR", str(e)]
 
+class FileReceiver(threading.Thread):
+    """מאזין על פורט 5001 ומקבל קבצים מהמנהל, שומר ל-Downloads."""
+    def __init__(self, agent_app):
+        super().__init__(daemon=True)
+        self.agent_app = agent_app
+        self.stop_flag = False
+
+    def run(self):
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            server.bind(("0.0.0.0", TRANSFER_PORT))
+            server.listen(5)
+            while not self.stop_flag:
+                try:
+                    server.settimeout(1)
+                    client, addr = server.accept()
+                    threading.Thread(target=self.handle, args=(client,), daemon=True).start()
+                except socket.timeout:
+                    pass
+                except Exception:
+                    pass
+        except Exception as e:
+            print(f"FileReceiver error: {e}")
+        finally:
+            server.close()
+
+    def handle(self, client):
+        try:
+            # קורא header "filename<SEP>filesize\n"
+            buf = bytearray()
+            while b"\n" not in buf:
+                chunk = client.recv(4096)
+                if not chunk:
+                    return
+                buf.extend(chunk)
+            header, rest = buf.split(b"\n", 1)
+            filename, filesize = header.decode("utf-8").split("<SEP>")
+            filesize = int(filesize)
+
+            downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+            os.makedirs(downloads, exist_ok=True)
+            path = os.path.join(downloads, os.path.basename(filename))
+            base, ext = os.path.splitext(path)
+            i = 1
+            while os.path.exists(path):          # לא דורסים קובץ קיים
+                path = f"{base} ({i}){ext}"
+                i += 1
+
+            received = len(rest)
+            with open(path, "wb") as f:
+                if rest:
+                    f.write(rest)
+                while received < filesize:
+                    chunk = client.recv(min(65536, filesize - received))
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    received += len(chunk)
+
+            name = os.path.basename(path)
+            self.agent_app.after(0, lambda: self.agent_app.log_message(f"File received: {name}"))
+        except Exception as e:
+            print(f"File recv error: {e}")
+        finally:
+            client.close()
+
+
 class AgentApp(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -180,6 +266,9 @@ class AgentApp(tk.Tk):
 
         self.server = CommandServer(self)
         self.server.start()
+
+        self.file_receiver = FileReceiver(self)
+        self.file_receiver.start()
 
         self.setup_ui()
 
@@ -242,6 +331,7 @@ class AgentApp(tk.Tk):
     def on_exit(self):
         self.broadcaster.stop_flag = True
         self.server.stop_flag = True
+        self.file_receiver.stop_flag = True
         self.destroy()
 
 if __name__ == "__main__":

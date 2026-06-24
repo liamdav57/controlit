@@ -10,7 +10,9 @@ import io
 from datetime import datetime
 from PIL import Image, ImageTk
 from net_utils import send_msg, recv_msg
-from config import CMD_PORT, DISCOVERY_PORT, AGENT_TIMEOUT_SEC
+import os
+from tkinter import filedialog
+from config import CMD_PORT, DISCOVERY_PORT, AGENT_TIMEOUT_SEC, TRANSFER_PORT
 
 def open_window(mode, *args):
     if getattr(sys, 'frozen', False):
@@ -283,7 +285,34 @@ class CyberDashboard(tk.Tk):
 
     # ── File Transfer ─────────────────────────────────────────────────────────
     def open_file_transfer(self):
-        messagebox.showinfo("File Transfer", "Not implemented yet")
+        if not self.selected_agent:
+            messagebox.showwarning("Error", "Select an agent first")
+            return
+        path = filedialog.askopenfilename(title="Choose a file to send")
+        if not path:
+            return
+
+        def _thread():
+            try:
+                filename = os.path.basename(path)
+                filesize = os.path.getsize(path)
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(15)
+                sock.connect((self.selected_agent['ip'], TRANSFER_PORT))
+                sock.sendall(f"{filename}<SEP>{filesize}\n".encode("utf-8"))
+                with open(path, "rb") as f:
+                    while True:
+                        chunk = f.read(65536)
+                        if not chunk:
+                            break
+                        sock.sendall(chunk)
+                sock.close()
+                self.after(0, lambda: messagebox.showinfo(
+                    "Success", f"Sent '{filename}' ({filesize} bytes).\nSaved to the user's Downloads folder."))
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("Error", f"Transfer failed: {e}"))
+
+        threading.Thread(target=_thread, daemon=True).start()
 
     # ── System Info ───────────────────────────────────────────────────────────
     def get_sysinfo(self):

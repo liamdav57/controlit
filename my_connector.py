@@ -15,6 +15,7 @@ DB_CONFIG = {
     'user':     DB_USER,
     'password': DB_PASSWORD,
     'database': DB_NAME,
+    'connection_timeout': 4,   # נכשל מהר אם אין שרת — שלא יתקע את הממשק
 }
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -53,6 +54,7 @@ def create_tables():
         host=DB_CONFIG['host'],
         user=DB_CONFIG['user'],
         password=DB_CONFIG['password'],
+        connection_timeout=4,
     )
     cur = temp.cursor()
     cur.execute(f"CREATE DATABASE IF NOT EXISTS {DB_CONFIG['database']}")

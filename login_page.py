@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, font
 import sys
 import subprocess
-from my_connector import login, register, save_user_machine, create_tables
+from my_connector import login, register, save_user_machine, create_tables, db_available
 
 try:
     create_tables()
@@ -132,6 +132,18 @@ class LoginApp(tk.Tk):
             messagebox.showerror("Error", "Fill all fields")
             return
 
+        # בדיקה מהירה (עם timeout) אם יש שרת מסד נתונים.
+        # בלי זה, login() היה נתקע על מחשב ללא MySQL ומקפיא את המסך.
+        if not db_available():
+            # מצב לא-מקוון — כל יכולות השליטה מרחוק עובדות בלי מסד;
+            # רק שמירת חשבונות והיסטוריה מושבתת.
+            messagebox.showinfo(
+                "Offline Mode",
+                "אין חיבור למסד נתונים — נכנס במצב לא-מקוון.\n"
+                "כל יכולות השליטה מרחוק זמינות כרגיל.")
+            self._enter(u)
+            return
+
         res = login(u, p)
         if res.get('success'):
             try:
@@ -139,17 +151,8 @@ class LoginApp(tk.Tk):
             except Exception:
                 pass
             self._enter(u)
-        elif res.get('message') == 'Invalid credentials':
-            messagebox.showerror("Failed", "Invalid credentials")
         else:
-            # אין שרת מסד נתונים זמין — נכנסים במצב לא-מקוון.
-            # כל יכולות השליטה מרחוק (צילום, shell, גילוי) עובדות בלי מסד;
-            # רק שמירת חשבונות והיסטוריה מושבתת.
-            messagebox.showinfo(
-                "Offline Mode",
-                "אין חיבור למסד נתונים — נכנס במצב לא-מקוון.\n"
-                "כל יכולות השליטה מרחוק זמינות כרגיל.")
-            self._enter(u)
+            messagebox.showerror("Failed", res.get('message', "Invalid credentials"))
 
     def _enter(self, username):
         """סוגר את מסך הכניסה ופותח את מסך בחירת המצב."""
@@ -168,6 +171,14 @@ class LoginApp(tk.Tk):
 
         if p != c:
             messagebox.showerror("Error", "Passwords don't match")
+            return
+
+        # אם אין שרת מסד נתונים — אין הרשמה, פשוט נכנסים עם שם כלשהו
+        if not db_available():
+            messagebox.showinfo(
+                "Offline Mode",
+                "אין מסד נתונים זמין — אין צורך בהרשמה.\n"
+                "התחבר עם שם כלשהו בצד שמאל כדי להיכנס.")
             return
 
         res = register(u, p)

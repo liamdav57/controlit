@@ -132,18 +132,7 @@ class LoginApp(tk.Tk):
             messagebox.showerror("Error", "Fill all fields")
             return
 
-        # בדיקה מהירה (עם timeout) אם יש שרת מסד נתונים.
-        # בלי זה, login() היה נתקע על מחשב ללא MySQL ומקפיא את המסך.
-        if not db_available():
-            # מצב לא-מקוון — כל יכולות השליטה מרחוק עובדות בלי מסד;
-            # רק שמירת חשבונות והיסטוריה מושבתת.
-            messagebox.showinfo(
-                "Offline Mode",
-                "אין חיבור למסד נתונים — נכנס במצב לא-מקוון.\n"
-                "כל יכולות השליטה מרחוק זמינות כרגיל.")
-            self._enter(u)
-            return
-
+        # התחברות אמיתית — מול MySQL אם קיים, אחרת מול קובץ חשבונות מקומי
         res = login(u, p)
         if res.get('success'):
             try:
@@ -173,14 +162,6 @@ class LoginApp(tk.Tk):
             messagebox.showerror("Error", "Passwords don't match")
             return
 
-        # אם אין שרת מסד נתונים — אין הרשמה, פשוט נכנסים עם שם כלשהו
-        if not db_available():
-            messagebox.showinfo(
-                "Offline Mode",
-                "אין מסד נתונים זמין — אין צורך בהרשמה.\n"
-                "התחבר עם שם כלשהו בצד שמאל כדי להיכנס.")
-            return
-
         res = register(u, p)
         if res.get('success'):
             messagebox.showinfo("Success", "Account created! Now login.")
@@ -190,14 +171,8 @@ class LoginApp(tk.Tk):
             self.login_user.delete(0, "end")
             self.login_pass.delete(0, "end")
             self.login_user.insert(0, u)
-        elif res.get('message') == 'User exists':
-            messagebox.showerror("Failed", "User exists")
         else:
-            # אין מסד נתונים — אין צורך בהרשמה, פשוט נכנסים עם שם כלשהו
-            messagebox.showinfo(
-                "Offline Mode",
-                "אין מסד נתונים זמין — אין צורך בהרשמה.\n"
-                "התחבר עם שם כלשהו בצד שמאל כדי להיכנס.")
+            messagebox.showerror("Failed", res.get('message', "Error"))
 
 if __name__ == "__main__":
     app = LoginApp()

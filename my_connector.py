@@ -1,4 +1,6 @@
 import hashlib
+import os
+import json
 from config import DB_HOST, DB_USER, DB_PASSWORD, DB_NAME
 
 # ייבוא הדרייבר של MySQL — אם לא מותקן, המערכת לא קורסת אלא עוברת למצב לא-מקוון
@@ -42,13 +44,36 @@ def db_available():
         return False
 
 
+# ── חשבונות מקומיים (כשאין MySQL) — קובץ JSON פשוט, לא מסד נתונים ──
+_LOCAL_FILE = os.path.join(os.path.expanduser("~"), "controlit_accounts.json")
+_backend = None   # None=לא נקבע, True=מקומי, False=MySQL
+
+def _use_local():
+    """נקבע פעם אחת: אם אין שרת MySQL — עובדים מול קובץ מקומי."""
+    global _backend
+    if _backend is None:
+        _backend = not db_available()
+    return _backend
+
+def _local_load():
+    try:
+        with open(_LOCAL_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _local_save(data):
+    with open(_LOCAL_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+
+
 # ══════════════════════════════════════════════════════════════════════════
 #  יצירת טבלאות (אם לא קיימות)
 # ══════════════════════════════════════════════════════════════════════════
 
 def create_tables():
-    if not _MYSQL_DRIVER:
-        raise RuntimeError("mysql.connector not installed - offline mode")
+    if not _MYSQL_DRIVER or _use_local():
+        return   # אין MySQL — משתמשים בקובץ חשבונות מקומי, אין מה ליצור
     # צור את ה-database אם לא קיים
     temp = mysql.connector.connect(
         host=DB_CONFIG['host'],
@@ -119,6 +144,8 @@ def verify_password(plain, hashed) -> bool:
 # ══════════════════════════════════════════════════════════════════════════
 
 def user_exists(username):
+    if _use_local():
+        return username in _local_load()
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -137,6 +164,13 @@ def user_exists(username):
 
 def register(username, password):
     try:
+        if _use_local():
+            accts = _local_load()
+            if username in accts:
+                return {'success': False, 'message': 'User exists'}
+            accts[username] = hash_password(password)
+            _local_save(accts)
+            return {'success': True}
         if user_exists(username):
             return {'success': False, 'message': 'User exists'}
         conn = get_connection()
@@ -160,6 +194,11 @@ def register(username, password):
 
 def login(username, password):
     try:
+        if _use_local():
+            stored = _local_load().get(username)
+            if stored and verify_password(password, stored):
+                return {'success': True, 'username': username}
+            return {'success': False, 'message': 'Invalid credentials'}
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
         cursor.execute("SELECT * FROM users WHERE username=%s", (username,))
@@ -187,6 +226,8 @@ def login(username, password):
 # ══════════════════════════════════════════════════════════════════════════
 
 def save_user_machine(username):
+    if _use_local():
+        return
     try:
         import socket
         ip = socket.gethostbyname(socket.gethostname())
@@ -208,6 +249,8 @@ def save_user_machine(username):
 # ══════════════════════════════════════════════════════════════════════════
 
 def save_target_computer(owner, name, ip, mac=""):
+    if _use_local():
+        return True
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -243,6 +286,8 @@ def save_target_computer(owner, name, ip, mac=""):
 # ══════════════════════════════════════════════════════════════════════════
 
 def get_saved_computers(owner):
+    if _use_local():
+        return []
     try:
         conn = get_connection()
         cursor = conn.cursor()

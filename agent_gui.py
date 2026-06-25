@@ -26,7 +26,7 @@ class UDPBroadcaster(threading.Thread):
         while not self.stop_flag:
             try:
                 msg = f"user|{socket.gethostname()}|{socket.gethostbyname(socket.gethostname())}"
-                sock.sendto(msg.encode('utf-8'), ("<broadcast>", DISCOVERY_PORT))
+                sock.sendto(msg.encode('utf-8'), ("<broadcast>", DISCOVERY_PORT))  
                 time.sleep(3)
             except Exception:
                 pass
@@ -39,7 +39,7 @@ class CommandServer(threading.Thread):
 
     def run(self):
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # קבלת פקודות טיסיסםי
         try:
             server.bind(("0.0.0.0", CMD_PORT))
             server.listen(5)
@@ -194,7 +194,7 @@ class FileReceiver(threading.Thread):
         self.stop_flag = False
 
     def run(self):
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM) # קבלת קבצים טי סי פי
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             server.bind(("0.0.0.0", TRANSFER_PORT))

@@ -64,7 +64,7 @@ class UDPListener(threading.Thread):
             except socket.timeout:
                 pass
             except Exception:
-                pass
+                pass # עד לפה הוא מגלה מחשבים ומאזין
 
 class CyberDashboard(tk.Tk):
     def __init__(self, username):
@@ -113,8 +113,16 @@ class CyberDashboard(tk.Tk):
                  bg="#e74c3c", fg="white",
                  command=self.refresh_agents).pack(side="left", padx=5)
 
-        tk.Label(btn_frame, text="",
-                bg="#1a1a1a", fg="#999999").pack(side="left", padx=5)
+        # ── התחברות ידנית לפי IP (עוקף את הגילוי האוטומטי) ──
+        tk.Label(btn_frame, text="or IP:",
+                font=("Arial", 10), bg="#1a1a1a", fg="#999999").pack(side="left", padx=(10, 2))
+        self.ip_entry = tk.Entry(btn_frame, width=15,
+                                 bg="#0a0a0a", fg="#ffffff", font=("Arial", 10))
+        self.ip_entry.pack(side="left")
+        self.ip_entry.bind("<Return>", lambda e: self.connect_by_ip())
+        tk.Button(btn_frame, text="Connect",
+                 font=("Arial", 10), bg="#27ae60", fg="white",
+                 command=self.connect_by_ip).pack(side="left", padx=5)
         self.selected_label = tk.Label(btn_frame, text="No selection",
                                        bg="#1a1a1a", fg="#999999",
                                        font=("Arial", 10))
@@ -193,6 +201,16 @@ class CyberDashboard(tk.Tk):
             ip = list(self.agents.keys())[sel[0]]
             self.selected_agent = self.agents[ip]
             self.selected_label.config(text=f"Selected: {self.selected_agent['name']}")
+
+    def connect_by_ip(self):
+        """בוחר מחשב ידנית לפי IP — בלי גילוי אוטומטי (לרשתות שחוסמות broadcast)."""
+        ip = self.ip_entry.get().strip()
+        if not ip:
+            messagebox.showwarning("Error", "Enter the IP shown on the user's screen")
+            return
+        self.selected_agent = {'ip': ip, 'name': ip, 'role': 'user'}
+        self.agent_sock = None   # חיבור חדש בפקודה הבאה
+        self.selected_label.config(text=f"Selected: {ip} (manual)")
 
     def _connect_agent(self):
         if not self.selected_agent:
